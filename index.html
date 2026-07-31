@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Noted</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%233F6652'/%3E%3Cg transform='translate(20,20) scale(2.5)' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 9h6'/%3E%3Cpath d='M9 12.5h6'/%3E%3Cpath d='M9 16h3.5'/%3E%3Cpath d='M19.5 6.5 13 13l-1.5 3.5L15 15l6.5-6.5a1.5 1.5 0 0 0 0-2.1l-.9-.9a1.5 1.5 0 0 0-2.1 0Z'/%3E%3C/g%3E%3C/svg%3E" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    textarea { field-sizing: content; }
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .task-row { animation: fade-in-up 0.28s ease-out; }
+    @keyframes pulse-dot {
+      0%, 80%, 100% { opacity: 0.25; }
+      40% { opacity: 1; }
+    }
+    .dot { animation: pulse-dot 1.1s infinite ease-in-out; }
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body class="h-dvh flex flex-col bg-[#FAF8F4] dark:bg-[#1B1F1C] text-[#1F2420] dark:text-[#EDEDE6] antialiased overflow-hidden">
+
+  <header class="shrink-0 flex items-center justify-center py-4" style="padding-top: calc(1rem + env(safe-area-inset-top));">
+    <div class="flex items-center gap-2">
+      <span class="h-7 w-7 rounded-full bg-[#3F6652] dark:bg-[#6B9C82] text-white dark:text-[#1B1F1C] flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+          <rect x="6" y="4" width="12" height="17" rx="2"/>
+          <path d="M9 9h6"/>
+          <path d="M9 12.5h6"/>
+          <path d="M9 16h3.5"/>
+          <path d="M19.5 6.5 13 13l-1.5 3.5L15 15l6.5-6.5a1.5 1.5 0 0 0 0-2.1l-.9-.9a1.5 1.5 0 0 0-2.1 0Z"/>
+        </svg>
+      </span>
+      <span class="text-[15px] font-medium tracking-tight">Noted</span>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto overscroll-contain">
+    <div class="max-w-2xl mx-auto w-full px-4 sm:px-5">
+      <div id="empty-state" class="min-h-[38vh] sm:min-h-[46vh] flex flex-col items-center justify-center text-center gap-1.5 px-4">
+        <h1 class="text-xl sm:text-2xl font-medium text-[#1F2420] dark:text-[#EDEDE6]">What do you need to remember?</h1>
+        <p class="text-sm text-[#8C897E] dark:text-[#8B948C]">Type or speak a note and I'll turn it into a task.</p>
+      </div>
+
+      <div id="tasks" class="hidden pb-6"></div>
+    </div>
+  </main>
+
+  <div class="shrink-0 bg-gradient-to-t from-[#FAF8F4] via-[#FAF8F4] dark:from-[#1B1F1C] dark:via-[#1B1F1C] pt-6">
+    <div class="max-w-2xl mx-auto w-full px-4 sm:px-5" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
+      <p id="error-msg" class="text-[#B3401F] dark:text-[#E08A6B] text-sm mb-2 px-1 hidden"></p>
+
+      <div class="relative flex items-end gap-1 sm:gap-1.5 rounded-3xl border border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] px-2.5 sm:px-3 py-2 focus-within:border-[#3F6652] dark:focus-within:border-[#6B9C82] transition-colors">
+        <textarea
+          id="note-input"
+          rows="1"
+          enterkeyhint="send"
+          placeholder="Message Noted…"
+          class="flex-1 resize-none max-h-40 bg-transparent border-0 focus:outline-none focus:ring-0 text-base leading-6 py-1.5 px-1 placeholder:text-[#A6A296] dark:placeholder:text-[#6B7269]"
+        ></textarea>
+
+        <button
+          id="mic-btn"
+          type="button"
+          title="Speak your note"
+          class="relative shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] active:bg-[#F0EEE6] dark:active:bg-white/5 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-[18px] h-[18px]">
+            <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/>
+            <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"/>
+          </svg>
+          <span id="mic-dot" class="hidden absolute top-1.5 right-1.5 sm:top-1 sm:right-1 h-2 w-2 rounded-full bg-[#D93025] ring-2 ring-white dark:ring-[#232824]"></span>
+        </button>
+
+        <button
+          id="extract-btn"
+          type="button"
+          title="Extract task"
+          class="shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full bg-[#3F6652] dark:bg-[#6B9C82] text-white dark:text-[#1B1F1C] flex items-center justify-center hover:opacity-85 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition"
+        >
+          <svg id="send-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-[17px] h-[17px]">
+            <path d="M12 19V5"/>
+            <path d="M5 12l7-7 7 7"/>
+          </svg>
+          <span id="loading-dots" class="hidden items-center gap-[3px]">
+            <span class="dot h-[5px] w-[5px] rounded-full bg-current"></span>
+            <span class="dot h-[5px] w-[5px] rounded-full bg-current"></span>
+            <span class="dot h-[5px] w-[5px] rounded-full bg-current"></span>
+          </span>
+        </button>
+      </div>
+
+      <p class="hidden sm:block text-center text-[11px] text-[#A6A296] dark:text-[#6B7269] mt-2">Enter to extract · Shift + Enter for a new line</p>
+    </div>
+  </div>
+
+  <script>
+    const noteInput = document.getElementById("note-input");
+    const micBtn = document.getElementById("mic-btn");
+    const micDot = document.getElementById("mic-dot");
+    const extractBtn = document.getElementById("extract-btn");
+    const sendIcon = document.getElementById("send-icon");
+    const loadingDots = document.getElementById("loading-dots");
+    const errorMsg = document.getElementById("error-msg");
+    const emptyState = document.getElementById("empty-state");
+    const tasksEl = document.getElementById("tasks");
+
+    const API_URL = "http://127.0.0.1:8010/extract-task";
+
+    const PRIORITY_DOT = {
+      Low: "bg-[#A6A296] dark:bg-[#6B7269]",
+      Medium: "bg-[#B3791F]",
+      High: "bg-[#B3401F]",
+    };
+
+    const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-3.5 h-3.5"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1.5 1.5 0 0 1 1.5-1.5H15"/></svg>`;
+    const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><path d="M20 6 9 17l-5-5"/></svg>`;
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove("hidden");
+    }
+
+    function clearError() {
+      errorMsg.classList.add("hidden");
+      errorMsg.textContent = "";
+    }
+
+    function setLoading(loading) {
+      extractBtn.disabled = loading;
+      sendIcon.classList.toggle("hidden", loading);
+      loadingDots.classList.toggle("hidden", !loading);
+      loadingDots.classList.toggle("flex", loading);
+    }
+
+    function taskAsText(task) {
+      const lines = [`${task.action || "Task"}`];
+      if (task.person) lines.push(`Person: ${task.person}`);
+      if (task.topic) lines.push(`Topic: ${task.topic}`);
+      if (task.time) lines.push(`Time: ${task.time}`);
+      lines.push(`Priority: ${task.priority}`);
+      return lines.join("\n");
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function revealTasks() {
+      emptyState.classList.add("hidden");
+      tasksEl.classList.remove("hidden");
+    }
+
+    function renderTask(task) {
+      revealTasks();
+
+      const row = document.createElement("div");
+      row.className = "task-row flex items-start justify-between gap-2 sm:gap-3 py-3.5 border-t border-[#EAE7DE] dark:border-[#2B302C] first:border-t-0";
+
+      const dotClass = PRIORITY_DOT[task.priority] || PRIORITY_DOT.Medium;
+      const meta = [task.person, task.time].filter(Boolean).map(escapeHtml).join(" &nbsp;·&nbsp; ");
+
+      row.innerHTML = `
+        <div class="min-w-0">
+          <span class="text-[11px] font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C]">${escapeHtml(task.action || "Task")}</span>
+          <div class="text-[15px] font-medium text-[#1F2420] dark:text-[#EDEDE6] mt-0.5">${escapeHtml(task.topic || "—")}</div>
+          ${meta ? `<div class="text-xs text-[#8C897E] dark:text-[#8B948C] mt-1">${meta}</div>` : ""}
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0 pt-0.5">
+          <span class="flex items-center gap-1.5 text-xs text-[#7A776E] dark:text-[#8B948C]">
+            <span class="h-1.5 w-1.5 rounded-full ${dotClass}"></span>${task.priority}
+          </span>
+          <button class="copy-btn h-9 w-9 sm:h-7 sm:w-7 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#1F2420] dark:hover:text-[#EDEDE6] hover:bg-[#F0EEE6] dark:hover:bg-white/5 transition-colors" title="Copy">
+            ${COPY_ICON}
+          </button>
+        </div>
+      `;
+
+      row.querySelector(".copy-btn").addEventListener("click", (e) => {
+        navigator.clipboard.writeText(taskAsText(task));
+        const btn = e.currentTarget;
+        btn.innerHTML = CHECK_ICON;
+        setTimeout(() => (btn.innerHTML = COPY_ICON), 1200);
+      });
+
+      tasksEl.prepend(row);
+    }
+
+    function renderFallback() {
+      revealTasks();
+      const row = document.createElement("div");
+      row.className = "task-row py-3.5 border-t border-[#EAE7DE] dark:border-[#2B302C] first:border-t-0 text-sm text-[#B3791F] dark:text-[#D9A54A]";
+      row.textContent = "Couldn't find a clear task in that note — try rephrasing.";
+      tasksEl.prepend(row);
+    }
+
+    async function extractTask() {
+      clearError();
+      const note = noteInput.value.trim();
+      if (!note) {
+        showError("Please type or speak something first.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || "Something went wrong extracting the task.");
+        }
+
+        const task = await res.json();
+        if (!task.task_found) {
+          renderFallback();
+        } else {
+          renderTask(task);
+          noteInput.value = "";
+          noteInput.style.height = "auto";
+        }
+      } catch (err) {
+        showError(err.message || "Something went wrong. Is the server running?");
+      } finally {
+        setLoading(false);
+        noteInput.focus();
+      }
+    }
+
+    extractBtn.addEventListener("click", extractTask);
+
+    // Auto-grow the textarea like a chat composer
+    noteInput.addEventListener("input", () => {
+      noteInput.style.height = "auto";
+      noteInput.style.height = Math.min(noteInput.scrollHeight, 160) + "px";
+    });
+
+    noteInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        extractTask();
+      }
+    });
+
+    // Voice input via the Web Speech API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      let listening = false;
+
+      recognition.addEventListener("result", (event) => {
+        const transcript = event.results[0][0].transcript;
+        noteInput.value = noteInput.value ? `${noteInput.value} ${transcript}` : transcript;
+        noteInput.dispatchEvent(new Event("input"));
+        clearError();
+      });
+
+      recognition.addEventListener("end", () => {
+        listening = false;
+        micDot.classList.add("hidden");
+      });
+
+      recognition.addEventListener("error", () => {
+        listening = false;
+        micDot.classList.add("hidden");
+        showError("Couldn't hear you — check microphone permissions and try again.");
+      });
+
+      micBtn.addEventListener("click", () => {
+        if (listening) {
+          recognition.stop();
+          return;
+        }
+        clearError();
+        listening = true;
+        micDot.classList.remove("hidden");
+        recognition.start();
+      });
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = "Voice input not supported in this browser";
+      micBtn.classList.add("opacity-30", "cursor-not-allowed");
+    }
+  </script>
+</body>
+</html>
