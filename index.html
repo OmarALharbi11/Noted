@@ -6,6 +6,14 @@
   <title>Noted</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%233F6652'/%3E%3Cg transform='translate(20,20) scale(2.5)' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 9h6'/%3E%3Cpath d='M9 12.5h6'/%3E%3Cpath d='M9 16h3.5'/%3E%3Cpath d='M19.5 6.5 13 13l-1.5 3.5L15 15l6.5-6.5a1.5 1.5 0 0 0 0-2.1l-.9-.9a1.5 1.5 0 0 0-2.1 0Z'/%3E%3C/g%3E%3C/svg%3E" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: "class" };
+    (function () {
+      var stored = localStorage.getItem("noted-theme") || "system";
+      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", stored === "dark" || (stored === "system" && prefersDark));
+    })();
+  </script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
     textarea { field-sizing: content; }
@@ -45,7 +53,7 @@
     </div>
 
     <div class="flex items-center gap-1">
-      <button id="briefing-btn" type="button" title="Today's briefing" class="h-8 w-8 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] disabled:opacity-40 transition-colors">
+      <button id="briefing-btn" type="button" data-i18n-title="briefingTitle" title="Today's briefing" class="h-8 w-8 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] disabled:opacity-40 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-[18px] h-[18px]">
           <rect x="3" y="5" width="18" height="16" rx="2"/>
           <path d="M8 3v4"/>
@@ -54,32 +62,59 @@
           <path d="m9 15 2 2 4-4"/>
         </svg>
       </button>
-      <button id="memory-btn" type="button" title="What I remember" class="h-8 w-8 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] transition-colors">
+      <button id="memory-btn" type="button" data-i18n-title="memoryTitle" title="What I remember" class="h-8 w-8 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-[18px] h-[18px]">
           <path d="M19 21 12 16l-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
+
+      <div class="relative">
+        <button id="menu-btn" type="button" data-i18n-title="settingsTitle" title="Settings" class="h-8 w-8 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-[18px] h-[18px]">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+
+        <div id="menu-dropdown" class="hidden absolute end-0 top-11 z-10 w-56 rounded-2xl border border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.12)] p-3">
+          <div class="mb-3">
+            <div data-i18n="menuLanguage" class="text-[11px] font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C] mb-1.5">Language</div>
+            <div class="flex gap-1.5">
+              <button type="button" class="lang-option flex-1 text-sm rounded-lg border px-2.5 py-1.5 transition-colors" data-lang="en">English</button>
+              <button type="button" class="lang-option flex-1 text-sm rounded-lg border px-2.5 py-1.5 transition-colors" data-lang="ar">العربية</button>
+            </div>
+          </div>
+          <div>
+            <div data-i18n="menuTheme" class="text-[11px] font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C] mb-1.5">Theme</div>
+            <div class="flex gap-1.5">
+              <button type="button" class="theme-option flex-1 text-sm rounded-lg border px-2 py-1.5 transition-colors" data-theme="light" data-i18n="themeLight">Light</button>
+              <button type="button" class="theme-option flex-1 text-sm rounded-lg border px-2 py-1.5 transition-colors" data-theme="dark" data-i18n="themeDark">Dark</button>
+              <button type="button" class="theme-option flex-1 text-sm rounded-lg border px-2 py-1.5 transition-colors" data-theme="system" data-i18n="themeSystem">System</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
   <div id="memory-panel" class="hidden shrink-0 border-b border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824]">
     <div class="max-w-2xl mx-auto w-full px-4 sm:px-5 py-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C]">What I remember</span>
+        <span data-i18n="memoryHeader" class="text-xs font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C]">What I remember</span>
         <button id="memory-close" type="button" class="h-6 w-6 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#1F2420] dark:hover:text-[#EDEDE6]">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="w-3 h-3"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
         </button>
       </div>
       <div id="memory-list" class="space-y-1.5"></div>
-      <p id="memory-empty" class="hidden text-sm text-[#8C897E] dark:text-[#8B948C]">Nothing remembered yet — mention a routine or preference and I'll keep it in mind.</p>
+      <p id="memory-empty" data-i18n="memoryEmpty" class="hidden text-sm text-[#8C897E] dark:text-[#8B948C]">Nothing remembered yet — mention a routine or preference and I'll keep it in mind.</p>
     </div>
   </div>
 
   <main class="flex-1 overflow-y-auto overscroll-contain">
     <div class="max-w-2xl mx-auto w-full px-4 sm:px-5">
       <div id="empty-state" class="hidden min-h-[38vh] sm:min-h-[46vh] flex flex-col items-center justify-center text-center gap-1.5 px-4">
-        <h1 class="text-xl sm:text-2xl font-medium text-[#1F2420] dark:text-[#EDEDE6]">What do you need to remember?</h1>
-        <p class="text-sm text-[#8C897E] dark:text-[#8B948C]">Type or speak a command and I'll take care of it.</p>
+        <h1 data-i18n="emptyTitle" class="text-xl sm:text-2xl font-medium text-[#1F2420] dark:text-[#EDEDE6]">What do you need to remember?</h1>
+        <p data-i18n="emptySubtitle" class="text-sm text-[#8C897E] dark:text-[#8B948C]">Type or speak a command and I'll take care of it.</p>
       </div>
 
       <div id="task-list" class="hidden pb-6">
@@ -127,6 +162,7 @@
           id="note-input"
           rows="1"
           enterkeyhint="send"
+          data-i18n-placeholder="composerPlaceholder"
           placeholder="Message Noted…"
           class="flex-1 resize-none max-h-40 bg-transparent border-0 focus:outline-none focus:ring-0 text-base leading-6 py-1.5 px-1 placeholder:text-[#A6A296] dark:placeholder:text-[#6B7269]"
         ></textarea>
@@ -134,6 +170,7 @@
         <button
           id="mic-btn"
           type="button"
+          data-i18n-title="micTitle"
           title="Speak your command"
           class="relative shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] active:bg-[#F0EEE6] dark:active:bg-white/5 transition-colors"
         >
@@ -147,6 +184,7 @@
         <button
           id="send-btn"
           type="button"
+          data-i18n-title="sendTitle"
           title="Send command"
           class="shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full bg-[#3F6652] dark:bg-[#6B9C82] text-white dark:text-[#1B1F1C] flex items-center justify-center hover:opacity-85 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition"
         >
@@ -162,7 +200,7 @@
         </button>
       </div>
 
-      <p class="hidden sm:block text-center text-[11px] text-[#A6A296] dark:text-[#6B7269] mt-2">Enter to send · Shift + Enter for a new line</p>
+      <p data-i18n="composerHint" class="hidden sm:block text-center text-[11px] text-[#A6A296] dark:text-[#6B7269] mt-2">Enter to send · Shift + Enter for a new line</p>
     </div>
   </div>
 
@@ -198,6 +236,8 @@
     const memoryList = document.getElementById("memory-list");
     const memoryEmpty = document.getElementById("memory-empty");
     const memoryClose = document.getElementById("memory-close");
+    const menuBtn = document.getElementById("menu-btn");
+    const menuDropdown = document.getElementById("menu-dropdown");
 
     const API_BASE = "https://noted-hiqu.onrender.com";
 
@@ -206,6 +246,7 @@
       Medium: "bg-[#B3791F]",
       High: "bg-[#B3401F]",
     };
+    const PRIORITY_LABEL_KEY = { Low: "priorityLow", Medium: "priorityMedium", High: "priorityHigh" };
 
     const DELETE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M4 6h16"/><path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6"/><path d="M6 6l1 14a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 17 20l1-14"/></svg>`;
     const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M20 6 9 17l-5-5"/></svg>`;
@@ -214,6 +255,162 @@
     let toastTimer = null;
     let lastInsights = [];
     const dismissedInsights = new Set();
+
+    // ---------- language & theme ----------
+
+    const TRANSLATIONS = {
+      en: {
+        briefingTitle: "Today's briefing",
+        memoryTitle: "What I remember",
+        settingsTitle: "Settings",
+        menuLanguage: "Language",
+        menuTheme: "Theme",
+        themeLight: "Light",
+        themeDark: "Dark",
+        themeSystem: "System",
+        memoryHeader: "What I remember",
+        memoryEmpty: "Nothing remembered yet — mention a routine or preference and I'll keep it in mind.",
+        emptyTitle: "What do you need to remember?",
+        emptySubtitle: "Type or speak a command and I'll take care of it.",
+        composerPlaceholder: "Message Noted…",
+        micTitle: "Speak your command",
+        sendTitle: "Send command",
+        composerHint: "Enter to send · Shift + Enter for a new line",
+        markDone: "Mark as done",
+        markNotDone: "Mark as not done",
+        deleteTitle: "Delete",
+        undo: "Undo",
+        pleaseTypeOrSpeak: "Please type or speak something first.",
+        couldntHear: "Couldn't hear you — check microphone permissions and try again.",
+        couldntDelete: "Couldn't delete that task.",
+        couldntBriefing: "Couldn't get today's briefing.",
+        somethingWrong: "Something went wrong.",
+        somethingWrongServer: "Something went wrong. Is the server running?",
+        completedLabel: "Completed",
+        deletedPrefix: "Deleted",
+        listening: "Listening…",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
+        today: "Today",
+        tomorrow: "Tomorrow",
+        yesterday: "Yesterday",
+        am: "AM",
+        pm: "PM",
+      },
+      ar: {
+        briefingTitle: "ملخص اليوم",
+        memoryTitle: "ما أتذكره",
+        settingsTitle: "الإعدادات",
+        menuLanguage: "اللغة",
+        menuTheme: "المظهر",
+        themeLight: "فاتح",
+        themeDark: "داكن",
+        themeSystem: "تلقائي",
+        memoryHeader: "ما أتذكره",
+        memoryEmpty: "لا يوجد شيء محفوظ بعد — اذكر عادة أو تفضيلًا وسأتذكره.",
+        emptyTitle: "ما الذي تريد أن أتذكره؟",
+        emptySubtitle: "اكتب أو تحدث بأمر وسأتولى الأمر.",
+        composerPlaceholder: "راسل نوتد…",
+        micTitle: "تحدث بأمرك",
+        sendTitle: "إرسال الأمر",
+        composerHint: "Enter للإرسال · Shift + Enter لسطر جديد",
+        markDone: "وضع علامة كمُنجز",
+        markNotDone: "إلغاء الإنجاز",
+        deleteTitle: "حذف",
+        undo: "تراجع",
+        pleaseTypeOrSpeak: "الرجاء الكتابة أو التحدث أولًا.",
+        couldntHear: "لم أستطع سماعك — تحقق من إذن الميكروفون وحاول مرة أخرى.",
+        couldntDelete: "تعذر حذف هذه المهمة.",
+        couldntBriefing: "تعذر الحصول على ملخص اليوم.",
+        somethingWrong: "حدث خطأ ما.",
+        somethingWrongServer: "حدث خطأ ما. هل الخادم يعمل؟",
+        completedLabel: "مكتملة",
+        deletedPrefix: "تم الحذف",
+        listening: "أستمع…",
+        priorityLow: "منخفضة",
+        priorityMedium: "متوسطة",
+        priorityHigh: "عالية",
+        today: "اليوم",
+        tomorrow: "غدًا",
+        yesterday: "أمس",
+        am: "ص",
+        pm: "م",
+      },
+    };
+
+    let currentLang = localStorage.getItem("noted-lang") || "en";
+    let currentTheme = localStorage.getItem("noted-theme") || "system";
+    const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function t(key) {
+      return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.en[key] || key;
+    }
+
+    function applyLanguage(lang) {
+      currentLang = TRANSLATIONS[lang] ? lang : "en";
+      localStorage.setItem("noted-lang", currentLang);
+      document.documentElement.lang = currentLang;
+      document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
+
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
+      });
+      document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+        el.title = t(el.getAttribute("data-i18n-title"));
+      });
+
+      document.querySelectorAll(".lang-option").forEach((btn) => {
+        setOptionActive(btn, btn.dataset.lang === currentLang);
+      });
+
+      // Static markup is retranslated above; re-render dynamic content
+      // (task rows, empty state text) so it picks up the new language too.
+      refreshAll();
+    }
+
+    function setOptionActive(btn, active) {
+      if (active) {
+        btn.classList.add("border-[#3F6652]", "dark:border-[#6B9C82]", "bg-[#F0EEE6]", "dark:bg-white/5", "text-[#1F2420]", "dark:text-[#EDEDE6]");
+        btn.classList.remove("border-[#E4E1D8]", "dark:border-[#333A34]", "text-[#7A776E]", "dark:text-[#8B948C]");
+      } else {
+        btn.classList.remove("border-[#3F6652]", "dark:border-[#6B9C82]", "bg-[#F0EEE6]", "dark:bg-white/5", "text-[#1F2420]", "dark:text-[#EDEDE6]");
+        btn.classList.add("border-[#E4E1D8]", "dark:border-[#333A34]", "text-[#7A776E]", "dark:text-[#8B948C]");
+      }
+    }
+
+    function applyTheme(theme) {
+      currentTheme = ["light", "dark", "system"].includes(theme) ? theme : "system";
+      localStorage.setItem("noted-theme", currentTheme);
+      const isDark = currentTheme === "dark" || (currentTheme === "system" && systemThemeQuery.matches);
+      document.documentElement.classList.toggle("dark", isDark);
+      document.querySelectorAll(".theme-option").forEach((btn) => {
+        setOptionActive(btn, btn.dataset.theme === currentTheme);
+      });
+    }
+
+    systemThemeQuery.addEventListener("change", () => {
+      if (currentTheme === "system") applyTheme("system");
+    });
+
+    document.querySelectorAll(".lang-option").forEach((btn) => {
+      btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+    });
+    document.querySelectorAll(".theme-option").forEach((btn) => {
+      btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
+    });
+
+    menuBtn.addEventListener("click", () => {
+      menuDropdown.classList.toggle("hidden");
+    });
+    document.addEventListener("click", (e) => {
+      if (!menuDropdown.classList.contains("hidden") && !menuDropdown.contains(e.target) && e.target !== menuBtn && !menuBtn.contains(e.target)) {
+        menuDropdown.classList.add("hidden");
+      }
+    });
 
     // ---------- helpers ----------
 
@@ -230,14 +427,14 @@
       const d = new Date(dueDate + "T00:00:00");
       const diffDays = Math.round((d - today) / 86400000);
       let label;
-      if (diffDays === 0) label = "Today";
-      else if (diffDays === 1) label = "Tomorrow";
-      else if (diffDays === -1) label = "Yesterday";
-      else label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      if (diffDays === 0) label = t("today");
+      else if (diffDays === 1) label = t("tomorrow");
+      else if (diffDays === -1) label = t("yesterday");
+      else label = d.toLocaleDateString(currentLang === "ar" ? "ar" : "en-US", { month: "short", day: "numeric" });
 
       if (dueTime) {
         const [h, m] = dueTime.split(":").map(Number);
-        const period = h >= 12 ? "PM" : "AM";
+        const period = h >= 12 ? t("pm") : t("am");
         const h12 = ((h + 11) % 12) + 1;
         label += `, ${h12}:${String(m).padStart(2, "0")} ${period}`;
       }
@@ -313,7 +510,7 @@
 
       if (completed.length > 0) {
         completedSection.classList.remove("hidden");
-        completedCount.textContent = `Completed (${completed.length})`;
+        completedCount.textContent = `${t("completedLabel")} (${completed.length})`;
         completedListEl.innerHTML = "";
         completed.forEach((t) => completedListEl.appendChild(renderTaskRow(t)));
       } else {
@@ -337,7 +534,7 @@
           isDone
             ? "bg-[#3F6652] dark:bg-[#6B9C82] border-[#3F6652] dark:border-[#6B9C82] text-white dark:text-[#1B1F1C]"
             : "border-[#DAD8D0] dark:border-[#3D453F] text-transparent hover:border-[#3F6652] dark:hover:border-[#6B9C82]"
-        }" title="${isDone ? "Mark as not done" : "Mark as done"}">
+        }" title="${isDone ? t("markNotDone") : t("markDone")}">
           ${CHECK_ICON}
         </button>
         <div class="min-w-0 flex-1">
@@ -345,8 +542,8 @@
           ${metaParts.length ? `<div class="text-xs text-[#8C897E] dark:text-[#8B948C] mt-1">${metaParts.join(" &nbsp;·&nbsp; ")}</div>` : ""}
         </div>
         <div class="flex items-center gap-2 shrink-0 pt-0.5">
-          ${!isDone ? `<span class="flex items-center gap-1.5 text-xs text-[#7A776E] dark:text-[#8B948C]"><span class="h-1.5 w-1.5 rounded-full ${dotClass}"></span>${task.priority}</span>` : ""}
-          <button class="delete-btn h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#B3401F] dark:hover:text-[#E08A6B] hover:bg-[#F0EEE6] dark:hover:bg-white/5 transition-colors" title="Delete">
+          ${!isDone ? `<span class="flex items-center gap-1.5 text-xs text-[#7A776E] dark:text-[#8B948C]"><span class="h-1.5 w-1.5 rounded-full ${dotClass}"></span>${t(PRIORITY_LABEL_KEY[task.priority] || "priorityMedium")}</span>` : ""}
+          <button class="delete-btn h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#B3401F] dark:hover:text-[#E08A6B] hover:bg-[#F0EEE6] dark:hover:bg-white/5 transition-colors" title="${t("deleteTitle")}">
             ${DELETE_ICON}
           </button>
         </div>
@@ -361,14 +558,14 @@
 
       if (task.suggestions && task.suggestions.length) {
         const sugWrap = document.createElement("div");
-        sugWrap.className = "ml-8 mt-1.5 space-y-1";
+        sugWrap.className = "ms-8 mt-1.5 space-y-1";
         task.suggestions.forEach((s) => sugWrap.appendChild(renderSuggestionRow(s)));
         wrapper.appendChild(sugWrap);
       }
 
       if (task.subtasks && task.subtasks.length) {
         const subWrap = document.createElement("div");
-        subWrap.className = "ml-8 mt-2.5 space-y-2 border-l border-[#EAE7DE] dark:border-[#2B302C] pl-3";
+        subWrap.className = "ms-8 mt-2.5 space-y-2 border-s border-[#EAE7DE] dark:border-[#2B302C] ps-3";
         task.subtasks.forEach((sub) => subWrap.appendChild(renderSubtaskRow(sub)));
         wrapper.appendChild(subWrap);
       }
@@ -389,7 +586,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5"><path d="M20 6 9 17l-5-5"/></svg>
         </button>
         <span class="text-sm flex-1 ${isDone ? "line-through text-[#A6A296] dark:text-[#6B7269]" : "text-[#1F2420] dark:text-[#EDEDE6]"}">${escapeHtml(sub.title)}</span>
-        <button class="delete-btn h-6 w-6 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#B3401F] dark:hover:text-[#E08A6B]" title="Delete">
+        <button class="delete-btn h-6 w-6 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#B3401F] dark:hover:text-[#E08A6B]" title="${t("deleteTitle")}">
           ${DELETE_ICON}
         </button>
       `;
@@ -472,13 +669,13 @@
     async function removeTask(task) {
       const res = await fetch(`${API_BASE}/tasks/${task.id}`, { method: "DELETE" });
       if (!res.ok) {
-        showError("Couldn't delete that task.");
+        showError(t("couldntDelete"));
         return;
       }
       const snapshot = await res.json();
       await refreshAll();
-      showToast(`Deleted: ${snapshot.title}`, {
-        label: "Undo",
+      showToast(`${t("deletedPrefix")}: ${snapshot.title}`, {
+        label: t("undo"),
         onClick: () => restoreTask(snapshot),
       });
     }
@@ -487,7 +684,7 @@
       await fetch(`${API_BASE}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(snapshot),
+        body: JSON.stringify({ ...snapshot, lang: currentLang }),
       });
       refreshAll();
     }
@@ -497,12 +694,12 @@
     briefingBtn.addEventListener("click", async () => {
       briefingBtn.disabled = true;
       try {
-        const res = await fetch(`${API_BASE}/briefing`, { method: "POST" });
+        const res = await fetch(`${API_BASE}/briefing?lang=${currentLang}`, { method: "POST" });
         const data = await res.json();
         briefingText.textContent = data.message;
         briefingBox.classList.remove("hidden");
       } catch (err) {
-        showError("Couldn't get today's briefing.");
+        showError(t("couldntBriefing"));
       } finally {
         briefingBtn.disabled = false;
       }
@@ -547,13 +744,13 @@
         const res = await fetch(`${API_BASE}/command`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, lang: currentLang }),
         });
 
         const data = await res.json();
 
         if (!res.ok) {
-          showError(data.detail || "Something went wrong.");
+          showError(data.detail || t("somethingWrong"));
           return;
         }
 
@@ -562,7 +759,7 @@
           fetchInsights();
           const deleted = (data.actions || []).find((a) => a.type === "deleted");
           if (deleted) {
-            showToast(data.message, { label: "Undo", onClick: () => restoreTask(deleted.task) });
+            showToast(data.message, { label: t("undo"), onClick: () => restoreTask(deleted.task) });
           } else {
             showToast(data.message);
           }
@@ -573,10 +770,10 @@
         } else if (data.status === "clarification_needed") {
           showClarify(data.question, data.options || []);
         } else {
-          showError(data.message || "Something went wrong.");
+          showError(data.message || t("somethingWrong"));
         }
       } catch (err) {
-        showError("Something went wrong. Is the server running?");
+        showError(t("somethingWrongServer"));
       } finally {
         setLoading(false);
         noteInput.focus();
@@ -599,7 +796,7 @@
     function submitFromComposer() {
       const text = noteInput.value.trim();
       if (!text) {
-        showError("Please type or speak something first.");
+        showError(t("pleaseTypeOrSpeak"));
         return;
       }
       sendCommand(text);
@@ -636,18 +833,18 @@
       if (isListening) {
         micBtn.classList.remove(...MIC_IDLE_CLASSES);
         micBtn.classList.add(...MIC_ACTIVE_CLASSES);
-        noteInput.placeholder = "Listening…";
+        noteInput.placeholder = t("listening");
       } else {
         micBtn.classList.remove(...MIC_ACTIVE_CLASSES);
         micBtn.classList.add(...MIC_IDLE_CLASSES);
-        noteInput.placeholder = "Message Noted…";
+        noteInput.placeholder = t("composerPlaceholder");
       }
     }
 
+    const RECOGNITION_LOCALE = { en: "en-US", ar: "ar-SA" };
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
@@ -688,7 +885,7 @@
         listening = false;
         setMicListening(false);
         if (event.error !== "no-speech" && event.error !== "aborted") {
-          showError("Couldn't hear you — check microphone permissions and try again.");
+          showError(t("couldntHear"));
         }
       });
 
@@ -698,6 +895,7 @@
           return;
         }
         clearError();
+        recognition.lang = RECOGNITION_LOCALE[currentLang] || "en-US";
         finalTranscript = "";
         interimTranscript = "";
         listening = true;
@@ -711,7 +909,8 @@
     }
 
     // ---------- init ----------
-    refreshAll();
+    applyTheme(currentTheme);
+    applyLanguage(currentLang); // also triggers the initial refreshAll()
   </script>
 </body>
 </html>

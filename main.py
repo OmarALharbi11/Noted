@@ -21,6 +21,7 @@ db.init_db()
 
 class CommandRequest(BaseModel):
     text: str
+    lang: str = "en"
 
 
 class TaskCreateRequest(BaseModel):
@@ -34,6 +35,7 @@ class TaskCreateRequest(BaseModel):
     estimated_duration_minutes: int | None = None
     recurrence: str | None = None
     parent_id: int | None = None
+    lang: str = "en"
 
 
 class TaskPatch(BaseModel):
@@ -54,7 +56,7 @@ def command(req: CommandRequest):
     text = req.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Please type or speak something first.")
-    return assistant.run_command(text)
+    return assistant.run_command(text, lang=req.lang)
 
 
 @app.get("/tasks")
@@ -64,8 +66,10 @@ def list_tasks():
 
 @app.post("/tasks")
 def create_task(payload: TaskCreateRequest):
-    task = db.create_task(**payload.model_dump(exclude_none=True))
-    for suggestion in assistant.generate_suggestions(task):
+    data = payload.model_dump(exclude_none=True)
+    lang = data.pop("lang", "en")
+    task = db.create_task(**data)
+    for suggestion in assistant.generate_suggestions(task, lang=lang):
         db.add_suggestion(task["id"], suggestion)
     return task
 
@@ -100,12 +104,12 @@ def insights():
 
 
 @app.post("/briefing")
-def briefing():
+def briefing(lang: str = "en"):
     pending = db.list_tasks(status="pending")
     today_str = date.today().isoformat()
     due_today = [t for t in pending if t.get("due_date") == today_str]
     overdue = [t for t in pending if t.get("due_date") and t["due_date"] < today_str]
-    message = assistant.generate_briefing(due_today, overdue, db.get_insights())
+    message = assistant.generate_briefing(due_today, overdue, db.get_insights(), lang=lang)
     return {"message": message}
 
 

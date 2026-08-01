@@ -13,6 +13,58 @@ MODEL = "claude-haiku-4-5"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME_RE = re.compile(r"^\d{2}:\d{2}$")
 
+LANGUAGE_NAMES = {"en": "English", "ar": "Arabic"}
+
+MESSAGES = {
+    "en": {
+        "created": "Created",
+        "updated": "Updated",
+        "deleted": "Deleted",
+        "completed": "Completed",
+        "next_occurrence": "Next occurrence",
+        "noted": "Noted",
+        "task_not_found": "Couldn't find that task — it may have already been changed.",
+        "task_not_found_delete": "Couldn't find that task to delete.",
+        "task_not_found_complete": "Couldn't find that task to complete.",
+        "task_not_found_subtasks": "Couldn't find that task to add subtasks to.",
+        "could_not_understand": "Didn't understand that — try rephrasing.",
+        "could_you_clarify": "Could you clarify?",
+        "nothing_changed": "Nothing was changed.",
+        "could_not_resolve_date": "couldn't resolve the date",
+        "could_not_resolve_time": "couldn't resolve the time",
+        "remembered_that": "remembered that for later",
+        "added_subtasks_label": "added subtasks",
+        "tasks_word": "tasks",
+        "done": "Done.",
+    },
+    "ar": {
+        "created": "تم الإنشاء",
+        "updated": "تم التحديث",
+        "deleted": "تم الحذف",
+        "completed": "تم الإنجاز",
+        "next_occurrence": "الموعد القادم",
+        "noted": "تم الحفظ",
+        "task_not_found": "لم أتمكن من العثور على هذه المهمة — ربما تم تغييرها بالفعل.",
+        "task_not_found_delete": "لم أتمكن من العثور على هذه المهمة لحذفها.",
+        "task_not_found_complete": "لم أتمكن من العثور على هذه المهمة لإكمالها.",
+        "task_not_found_subtasks": "لم أتمكن من العثور على هذه المهمة لإضافة مهام فرعية إليها.",
+        "could_not_understand": "لم أفهم ذلك — حاول إعادة الصياغة.",
+        "could_you_clarify": "هل يمكنك التوضيح؟",
+        "nothing_changed": "لم يتغير شيء.",
+        "could_not_resolve_date": "تعذر تحديد التاريخ",
+        "could_not_resolve_time": "تعذر تحديد الوقت",
+        "remembered_that": "تم حفظ ذلك للمستقبل",
+        "added_subtasks_label": "أُضيفت مهام فرعية",
+        "tasks_word": "مهام",
+        "done": "تم.",
+    },
+}
+
+
+def _msgs(lang: str) -> dict:
+    return MESSAGES.get(lang, MESSAGES["en"])
+
+
 TOOLS = [
     {
         "name": "create_task",
@@ -177,7 +229,7 @@ Given the user's tasks due today, anything overdue, and current insights, write 
 Keep it conversational and brief — this is meant to be read in a few seconds, not a report."""
 
 
-def build_system_prompt(pending_tasks: list[dict], memories: list[str] | None = None) -> str:
+def build_system_prompt(pending_tasks: list[dict], memories: list[str] | None = None, lang: str = "en") -> str:
     today_str = datetime.now().strftime("%A, %Y-%m-%d")
 
     def task_line(t: dict, indent: str = "") -> str:
@@ -198,9 +250,18 @@ def build_system_prompt(pending_tasks: list[dict], memories: list[str] | None = 
     if memories:
         memory_section = "\nWhat you remember about this user:\n" + "\n".join(f"- {m}" for m in memories) + "\n"
 
+    language_line = ""
+    if lang != "en":
+        language_name = LANGUAGE_NAMES.get(lang, lang)
+        language_line = (
+            f"\nWrite any generated text — ask_clarification questions/options, remembered "
+            f"facts — in {language_name}. Task titles/details should reflect whatever language "
+            f"the user actually used to describe them.\n"
+        )
+
     return f"""You are the command interpreter for Noted, a personal task manager.
 Today is {today_str}. Resolve all relative dates/times against this.
-{memory_section}
+{language_line}{memory_section}
 Current pending tasks (subtasks are indented under their parent):
 {task_lines}
 
@@ -221,18 +282,26 @@ def _warn_suffix(warnings: list[str]) -> str:
     return f" ({'; '.join(warnings)})" if warnings else ""
 
 
-def _clean_date_time_fields(input_data: dict) -> tuple[dict, list[str]]:
+def _clean_date_time_fields(input_data: dict, lang: str = "en") -> tuple[dict, list[str]]:
+    msgs = _msgs(lang)
     warnings = []
     if input_data.get("due_date") is not None and not DATE_RE.match(str(input_data["due_date"])):
-        warnings.append("couldn't resolve the date")
+        warnings.append(msgs["could_not_resolve_date"])
         del input_data["due_date"]
     if input_data.get("due_time") is not None and not TIME_RE.match(str(input_data["due_time"])):
-        warnings.append("couldn't resolve the time")
+        warnings.append(msgs["could_not_resolve_time"])
         del input_data["due_time"]
     return input_data, warnings
 
 
-def generate_suggestions(task: dict) -> list[str]:
+def _added_subtasks_message(count: int, title: str, lang: str) -> str:
+    if lang == "ar":
+        return f"تمت إضافة {count} مهام فرعية إلى {title}"
+    plural = "s" if count != 1 else ""
+    return f"Added {count} subtask{plural} to {title}"
+
+
+def generate_suggestions(task: dict, lang: str = "en") -> list[str]:
     details = f"Task: {task['title']}"
     if task.get("description"):
         details += f"\nDetails: {task['description']}"
@@ -243,11 +312,15 @@ def generate_suggestions(task: dict) -> list[str]:
     if task.get("category"):
         details += f"\nCategory: {task['category']}"
 
+    system = SUGGESTION_SYSTEM
+    if lang != "en":
+        system += f"\n\nRespond in {LANGUAGE_NAMES.get(lang, lang)}."
+
     try:
         response = client.messages.create(
             model=MODEL,
             max_tokens=512,
-            system=SUGGESTION_SYSTEM,
+            system=system,
             output_config={"format": {"type": "json_schema", "schema": SUGGESTION_SCHEMA}},
             messages=[{"role": "user", "content": details}],
         )
@@ -265,7 +338,7 @@ def generate_suggestions(task: dict) -> list[str]:
         return []
 
 
-def generate_briefing(due_today: list[dict], overdue: list[dict], insights: list[dict]) -> str:
+def generate_briefing(due_today: list[dict], overdue: list[dict], insights: list[dict], lang: str = "en") -> str:
     lines = []
     if due_today:
         lines.append("Due today:")
@@ -282,23 +355,29 @@ def generate_briefing(due_today: list[dict], overdue: list[dict], insights: list
             lines.append(f"- {i['message']}")
 
     if not lines:
-        return "Nothing due today, and nothing overdue — you're clear."
+        return "Nothing due today, and nothing overdue — you're clear." if lang == "en" else "لا توجد مهام اليوم، ولا مهام متأخرة — كل شيء تحت السيطرة."
+
+    system = BRIEFING_SYSTEM
+    if lang != "en":
+        system += f"\n\nRespond in {LANGUAGE_NAMES.get(lang, lang)}."
 
     try:
         response = client.messages.create(
             model=MODEL,
             max_tokens=512,
-            system=BRIEFING_SYSTEM,
+            system=system,
             messages=[{"role": "user", "content": "\n".join(lines)}],
         )
     except Exception:
-        return "Couldn't generate a briefing right now."
+        return "Couldn't generate a briefing right now." if lang == "en" else "تعذر إنشاء الملخص اليومي الآن."
 
     text = next((b.text for b in response.content if b.type == "text"), None)
-    return text or "Couldn't generate a briefing right now."
+    fallback = "Couldn't generate a briefing right now." if lang == "en" else "تعذر إنشاء الملخص اليومي الآن."
+    return text or fallback
 
 
-def _execute_tool(name: str, raw_input: dict) -> list[dict]:
+def _execute_tool(name: str, raw_input: dict, lang: str = "en") -> list[dict]:
+    msgs = _msgs(lang)
     input_data = dict(raw_input)
 
     if name == "remember":
@@ -306,60 +385,60 @@ def _execute_tool(name: str, raw_input: dict) -> list[dict]:
         if not fact:
             return []
         db.add_memory(fact)
-        return [{"type": "remembered", "task": None, "summary": f"Noted: {fact}"}]
+        return [{"type": "remembered", "task": None, "summary": f"{msgs['noted']}: {fact}"}]
 
     if name == "create_subtasks":
         parent_id = input_data.get("parent_task_id")
         parent = db.get_task(parent_id) if parent_id is not None else None
         if parent is None:
-            return [{"type": "skipped", "task": None, "summary": "Couldn't find that task to add subtasks to."}]
+            return [{"type": "skipped", "task": None, "summary": msgs["task_not_found_subtasks"]}]
         created = db.create_subtasks(parent_id, input_data.get("subtasks") or [])
-        count = len(created)
-        summary = f"Added {count} subtask{'s' if count != 1 else ''} to {parent['title']}"
+        summary = _added_subtasks_message(len(created), parent["title"], lang)
         return [{"type": "subtasks_created", "task": parent, "summary": summary}]
 
-    input_data, warnings = _clean_date_time_fields(input_data)
+    input_data, warnings = _clean_date_time_fields(input_data, lang)
 
     if name == "create_task":
         if "parent_task_id" in input_data:
             input_data["parent_id"] = input_data.pop("parent_task_id")
         task = db.create_task(**input_data)
-        for suggestion in generate_suggestions(task):
+        for suggestion in generate_suggestions(task, lang):
             db.add_suggestion(task["id"], suggestion)
-        summary = f"Created: {task['title']}{_due_suffix(task)}{_warn_suffix(warnings)}"
+        summary = f"{msgs['created']}: {task['title']}{_due_suffix(task)}{_warn_suffix(warnings)}"
         return [{"type": "created", "task": task, "summary": summary}]
 
     if name == "update_task":
         task_id = input_data.pop("task_id", None)
         existing = db.get_task(task_id) if task_id is not None else None
         if existing is None:
-            return [{"type": "skipped", "task": None, "summary": "Couldn't find that task — it may have already been changed."}]
+            return [{"type": "skipped", "task": None, "summary": msgs["task_not_found"]}]
         task = db.update_task(task_id, **input_data)
-        summary = f"Updated: {task['title']}{_due_suffix(task)}{_warn_suffix(warnings)}"
+        summary = f"{msgs['updated']}: {task['title']}{_due_suffix(task)}{_warn_suffix(warnings)}"
         return [{"type": "updated", "task": task, "summary": summary}]
 
     if name == "delete_task":
         task_id = input_data.get("task_id")
         task = db.delete_task(task_id) if task_id is not None else None
         if task is None:
-            return [{"type": "skipped", "task": None, "summary": "Couldn't find that task to delete."}]
-        return [{"type": "deleted", "task": task, "summary": f"Deleted: {task['title']}"}]
+            return [{"type": "skipped", "task": None, "summary": msgs["task_not_found_delete"]}]
+        return [{"type": "deleted", "task": task, "summary": f"{msgs['deleted']}: {task['title']}"}]
 
     if name == "complete_task":
         task_id = input_data.get("task_id")
         existing = db.get_task(task_id) if task_id is not None else None
         if existing is None:
-            return [{"type": "skipped", "task": None, "summary": "Couldn't find that task to complete."}]
+            return [{"type": "skipped", "task": None, "summary": msgs["task_not_found_complete"]}]
         completed, recurred = db.complete_task_with_recurrence(task_id)
-        results = [{"type": "completed", "task": completed, "summary": f"Completed: {completed['title']}"}]
+        results = [{"type": "completed", "task": completed, "summary": f"{msgs['completed']}: {completed['title']}"}]
         if recurred:
-            results.append({"type": "created", "task": recurred, "summary": f"Next occurrence: {recurred['title']}{_due_suffix(recurred)}"})
+            results.append({"type": "created", "task": recurred, "summary": f"{msgs['next_occurrence']}: {recurred['title']}{_due_suffix(recurred)}"})
         return results
 
     return []
 
 
-def _combine_messages(actions: list[dict]) -> str:
+def _combine_messages(actions: list[dict], lang: str = "en") -> str:
+    msgs = _msgs(lang)
     real = [a for a in actions if a["type"] != "skipped"]
     if len(real) == 1:
         return real[0]["summary"]
@@ -371,17 +450,32 @@ def _combine_messages(actions: list[dict]) -> str:
             counts: dict[str, int] = {}
             for a in task_like:
                 counts[a["type"]] = counts.get(a["type"], 0) + 1
-            parts.append(", ".join(f"{count} task{'s' if count != 1 else ''} {kind}" for kind, count in counts.items()))
+            action_words = {
+                "created": msgs["created"],
+                "updated": msgs["updated"],
+                "deleted": msgs["deleted"],
+                "completed": msgs["completed"],
+                "subtasks_created": msgs["added_subtasks_label"],
+            }
+            if lang == "ar":
+                parts.append("، ".join(f"{count} {msgs['tasks_word']} {action_words.get(kind, kind)}" for kind, count in counts.items()))
+            else:
+                parts.append(", ".join(f"{count} task{'s' if count != 1 else ''} {action_words.get(kind, kind).lower()}" for kind, count in counts.items()))
         if remembered_count:
-            parts.append("remembered that for later")
-        return ", ".join(parts).capitalize() if parts else "Done."
+            parts.append(msgs["remembered_that"])
+        joiner = "، " if lang == "ar" else ", "
+        if not parts:
+            return msgs["done"]
+        combined = joiner.join(parts)
+        return combined if lang == "ar" else combined.capitalize()
     return "; ".join(a["summary"] for a in actions)
 
 
-def run_command(text: str) -> dict:
+def run_command(text: str, lang: str = "en") -> dict:
+    msgs = _msgs(lang)
     pending = db.list_tasks(status="pending")
     memories = [m["fact"] for m in db.list_memories()]
-    system = build_system_prompt(pending, memories)
+    system = build_system_prompt(pending, memories, lang)
 
     try:
         response = client.messages.create(
@@ -401,28 +495,28 @@ def run_command(text: str) -> dict:
 
     tool_calls = [b for b in response.content if b.type == "tool_use"]
     if not tool_calls:
-        return {"status": "error", "message": "Didn't understand that — try rephrasing."}
+        return {"status": "error", "message": msgs["could_not_understand"]}
 
     clarification = next((b for b in tool_calls if b.name == "ask_clarification"), None)
     if clarification is not None:
         return {
             "status": "clarification_needed",
-            "question": clarification.input.get("question", "Could you clarify?"),
+            "question": clarification.input.get("question", msgs["could_you_clarify"]),
             "options": clarification.input.get("options") or [],
         }
 
     actions: list[dict] = []
     for call in tool_calls:
-        actions.extend(_execute_tool(call.name, call.input))
+        actions.extend(_execute_tool(call.name, call.input, lang))
 
     real_actions = [a for a in actions if a["type"] != "skipped"]
     if not real_actions:
-        message = actions[0]["summary"] if actions else "Nothing was changed."
+        message = actions[0]["summary"] if actions else msgs["nothing_changed"]
         return {"status": "error", "message": message}
 
     return {
         "status": "ok",
-        "message": _combine_messages(actions),
+        "message": _combine_messages(actions, lang),
         "actions": [{"type": a["type"], "task": a["task"]} for a in real_actions],
         "tasks": db.list_tasks(),
     }
