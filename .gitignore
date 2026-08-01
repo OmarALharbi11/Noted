@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 server.log
 .env
+noted.db
+noted.db-wal
+noted.db-shm

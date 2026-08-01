@@ -13,7 +13,7 @@
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .task-row { animation: fade-in-up 0.28s ease-out; }
+    .task-row { animation: fade-in-up 0.22s ease-out; }
     @keyframes pulse-dot {
       0%, 80%, 100% { opacity: 0.25; }
       40% { opacity: 1; }
@@ -21,6 +21,11 @@
     .dot { animation: pulse-dot 1.1s infinite ease-in-out; }
     .dot:nth-child(2) { animation-delay: 0.15s; }
     .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-in { animation: toast-in 0.2s ease-out; }
   </style>
 </head>
 <body class="h-dvh flex flex-col bg-[#FAF8F4] dark:bg-[#1B1F1C] text-[#1F2420] dark:text-[#EDEDE6] antialiased overflow-hidden">
@@ -42,17 +47,38 @@
 
   <main class="flex-1 overflow-y-auto overscroll-contain">
     <div class="max-w-2xl mx-auto w-full px-4 sm:px-5">
-      <div id="empty-state" class="min-h-[38vh] sm:min-h-[46vh] flex flex-col items-center justify-center text-center gap-1.5 px-4">
+      <div id="empty-state" class="hidden min-h-[38vh] sm:min-h-[46vh] flex flex-col items-center justify-center text-center gap-1.5 px-4">
         <h1 class="text-xl sm:text-2xl font-medium text-[#1F2420] dark:text-[#EDEDE6]">What do you need to remember?</h1>
-        <p class="text-sm text-[#8C897E] dark:text-[#8B948C]">Type or speak a note and I'll turn it into a task.</p>
+        <p class="text-sm text-[#8C897E] dark:text-[#8B948C]">Type or speak a command and I'll take care of it.</p>
       </div>
 
-      <div id="tasks" class="hidden pb-6"></div>
+      <div id="task-list" class="hidden pb-6">
+        <div id="pending-list"></div>
+
+        <div id="completed-section" class="hidden mt-4">
+          <button id="completed-toggle" type="button" class="text-xs font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C] flex items-center gap-1.5 py-2">
+            <svg id="completed-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 transition-transform"><path d="m9 18 6-6-6-6"/></svg>
+            <span id="completed-count">Completed</span>
+          </button>
+          <div id="completed-list" class="hidden"></div>
+        </div>
+      </div>
     </div>
   </main>
 
-  <div class="shrink-0 bg-gradient-to-t from-[#FAF8F4] via-[#FAF8F4] dark:from-[#1B1F1C] dark:via-[#1B1F1C] pt-6">
+  <div class="shrink-0 bg-gradient-to-t from-[#FAF8F4] via-[#FAF8F4] dark:from-[#1B1F1C] dark:via-[#1B1F1C] pt-6 relative">
     <div class="max-w-2xl mx-auto w-full px-4 sm:px-5" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
+
+      <div id="toast" class="hidden toast-in mb-2 flex items-center justify-between gap-3 rounded-2xl border border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824] px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)]">
+        <span id="toast-message" class="text-[#1F2420] dark:text-[#EDEDE6]"></span>
+        <button id="toast-action" class="hidden shrink-0 font-semibold text-[#3F6652] dark:text-[#6B9C82]"></button>
+      </div>
+
+      <div id="clarify-box" class="hidden mb-2 rounded-2xl border border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824] px-4 py-3">
+        <p id="clarify-question" class="text-sm text-[#1F2420] dark:text-[#EDEDE6] mb-2"></p>
+        <div id="clarify-options" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
       <p id="error-msg" class="text-[#B3401F] dark:text-[#E08A6B] text-sm mb-2 px-1 hidden"></p>
 
       <div class="relative flex items-end gap-1 sm:gap-1.5 rounded-3xl border border-[#E4E1D8] dark:border-[#333A34] bg-white dark:bg-[#232824] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] px-2.5 sm:px-3 py-2 focus-within:border-[#3F6652] dark:focus-within:border-[#6B9C82] transition-colors">
@@ -67,7 +93,7 @@
         <button
           id="mic-btn"
           type="button"
-          title="Speak your note"
+          title="Speak your command"
           class="relative shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] active:bg-[#F0EEE6] dark:active:bg-white/5 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-[18px] h-[18px]">
@@ -78,9 +104,9 @@
         </button>
 
         <button
-          id="extract-btn"
+          id="send-btn"
           type="button"
-          title="Extract task"
+          title="Send command"
           class="shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full bg-[#3F6652] dark:bg-[#6B9C82] text-white dark:text-[#1B1F1C] flex items-center justify-center hover:opacity-85 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition"
         >
           <svg id="send-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-[17px] h-[17px]">
@@ -95,7 +121,7 @@
         </button>
       </div>
 
-      <p class="hidden sm:block text-center text-[11px] text-[#A6A296] dark:text-[#6B7269] mt-2">Enter to extract · Shift + Enter for a new line</p>
+      <p class="hidden sm:block text-center text-[11px] text-[#A6A296] dark:text-[#6B7269] mt-2">Enter to send · Shift + Enter for a new line</p>
     </div>
   </div>
 
@@ -103,14 +129,26 @@
     const noteInput = document.getElementById("note-input");
     const micBtn = document.getElementById("mic-btn");
     const micDot = document.getElementById("mic-dot");
-    const extractBtn = document.getElementById("extract-btn");
+    const sendBtn = document.getElementById("send-btn");
     const sendIcon = document.getElementById("send-icon");
     const loadingDots = document.getElementById("loading-dots");
     const errorMsg = document.getElementById("error-msg");
     const emptyState = document.getElementById("empty-state");
-    const tasksEl = document.getElementById("tasks");
+    const taskListEl = document.getElementById("task-list");
+    const pendingListEl = document.getElementById("pending-list");
+    const completedSection = document.getElementById("completed-section");
+    const completedListEl = document.getElementById("completed-list");
+    const completedToggle = document.getElementById("completed-toggle");
+    const completedCount = document.getElementById("completed-count");
+    const completedChevron = document.getElementById("completed-chevron");
+    const toastEl = document.getElementById("toast");
+    const toastMessage = document.getElementById("toast-message");
+    const toastAction = document.getElementById("toast-action");
+    const clarifyBox = document.getElementById("clarify-box");
+    const clarifyQuestion = document.getElementById("clarify-question");
+    const clarifyOptions = document.getElementById("clarify-options");
 
-    const API_URL = "http://127.0.0.1:8010/extract-task";
+    const API_BASE = "http://127.0.0.1:8010";
 
     const PRIORITY_DOT = {
       Low: "bg-[#A6A296] dark:bg-[#6B7269]",
@@ -118,8 +156,39 @@
       High: "bg-[#B3401F]",
     };
 
-    const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-3.5 h-3.5"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1.5 1.5 0 0 1 1.5-1.5H15"/></svg>`;
-    const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><path d="M20 6 9 17l-5-5"/></svg>`;
+    const DELETE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M4 6h16"/><path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6"/><path d="M6 6l1 14a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 17 20l1-14"/></svg>`;
+    const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M20 6 9 17l-5-5"/></svg>`;
+
+    let toastTimer = null;
+
+    // ---------- helpers ----------
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDue(dueDate, dueTime) {
+      if (!dueDate) return dueTime || "";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const d = new Date(dueDate + "T00:00:00");
+      const diffDays = Math.round((d - today) / 86400000);
+      let label;
+      if (diffDays === 0) label = "Today";
+      else if (diffDays === 1) label = "Tomorrow";
+      else if (diffDays === -1) label = "Yesterday";
+      else label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+      if (dueTime) {
+        const [h, m] = dueTime.split(":").map(Number);
+        const period = h >= 12 ? "PM" : "AM";
+        const h12 = ((h + 11) % 12) + 1;
+        label += `, ${h12}:${String(m).padStart(2, "0")} ${period}`;
+      }
+      return label;
+    }
 
     function showError(msg) {
       errorMsg.textContent = msg;
@@ -131,114 +200,224 @@
       errorMsg.textContent = "";
     }
 
+    function showToast(message, action) {
+      clearTimeout(toastTimer);
+      toastMessage.textContent = message;
+      toastEl.classList.remove("hidden");
+      toastEl.classList.add("flex");
+      toastEl.classList.remove("toast-in");
+      void toastEl.offsetWidth;
+      toastEl.classList.add("toast-in");
+
+      if (action) {
+        toastAction.textContent = action.label;
+        toastAction.classList.remove("hidden");
+        toastAction.onclick = () => {
+          hideToast();
+          action.onClick();
+        };
+      } else {
+        toastAction.classList.add("hidden");
+        toastAction.onclick = null;
+      }
+
+      toastTimer = setTimeout(hideToast, action ? 5000 : 3000);
+    }
+
+    function hideToast() {
+      toastEl.classList.add("hidden");
+      toastEl.classList.remove("flex");
+    }
+
+    function hideClarify() {
+      clarifyBox.classList.add("hidden");
+    }
+
     function setLoading(loading) {
-      extractBtn.disabled = loading;
+      sendBtn.disabled = loading;
       sendIcon.classList.toggle("hidden", loading);
       loadingDots.classList.toggle("hidden", !loading);
       loadingDots.classList.toggle("flex", loading);
     }
 
-    function taskAsText(task) {
-      const lines = [`${task.action || "Task"}`];
-      if (task.person) lines.push(`Person: ${task.person}`);
-      if (task.topic) lines.push(`Topic: ${task.topic}`);
-      if (task.time) lines.push(`Time: ${task.time}`);
-      lines.push(`Priority: ${task.priority}`);
-      return lines.join("\n");
-    }
+    // ---------- rendering ----------
 
-    function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    function revealTasks() {
+    function renderTasks(tasks) {
+      if (tasks.length === 0) {
+        emptyState.classList.remove("hidden");
+        taskListEl.classList.add("hidden");
+        return;
+      }
       emptyState.classList.add("hidden");
-      tasksEl.classList.remove("hidden");
+      taskListEl.classList.remove("hidden");
+
+      const pending = tasks.filter((t) => t.status !== "completed");
+      const completed = tasks.filter((t) => t.status === "completed");
+
+      pendingListEl.innerHTML = "";
+      pending.forEach((t) => pendingListEl.appendChild(renderTaskRow(t)));
+
+      if (completed.length > 0) {
+        completedSection.classList.remove("hidden");
+        completedCount.textContent = `Completed (${completed.length})`;
+        completedListEl.innerHTML = "";
+        completed.forEach((t) => completedListEl.appendChild(renderTaskRow(t)));
+      } else {
+        completedSection.classList.add("hidden");
+      }
     }
 
-    function renderTask(task) {
-      revealTasks();
-
+    function renderTaskRow(task) {
+      const isDone = task.status === "completed";
       const row = document.createElement("div");
-      row.className = "task-row flex items-start justify-between gap-2 sm:gap-3 py-3.5 border-t border-[#EAE7DE] dark:border-[#2B302C] first:border-t-0";
+      row.className = "task-row flex items-start gap-3 py-3 border-t border-[#EAE7DE] dark:border-[#2B302C] first:border-t-0";
 
       const dotClass = PRIORITY_DOT[task.priority] || PRIORITY_DOT.Medium;
-      const meta = [task.person, task.time].filter(Boolean).map(escapeHtml).join(" &nbsp;·&nbsp; ");
+      const due = formatDue(task.due_date, task.due_time);
+      const metaParts = [due, task.category].filter(Boolean).map(escapeHtml);
 
       row.innerHTML = `
-        <div class="min-w-0">
-          <span class="text-[11px] font-semibold uppercase tracking-wide text-[#8C897E] dark:text-[#8B948C]">${escapeHtml(task.action || "Task")}</span>
-          <div class="text-[15px] font-medium text-[#1F2420] dark:text-[#EDEDE6] mt-0.5">${escapeHtml(task.topic || "—")}</div>
-          ${meta ? `<div class="text-xs text-[#8C897E] dark:text-[#8B948C] mt-1">${meta}</div>` : ""}
+        <button class="check-btn shrink-0 mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+          isDone
+            ? "bg-[#3F6652] dark:bg-[#6B9C82] border-[#3F6652] dark:border-[#6B9C82] text-white dark:text-[#1B1F1C]"
+            : "border-[#DAD8D0] dark:border-[#3D453F] text-transparent hover:border-[#3F6652] dark:hover:border-[#6B9C82]"
+        }" title="${isDone ? "Mark as not done" : "Mark as done"}">
+          ${CHECK_ICON}
+        </button>
+        <div class="min-w-0 flex-1">
+          <div class="text-[15px] font-medium ${isDone ? "line-through text-[#A6A296] dark:text-[#6B7269]" : "text-[#1F2420] dark:text-[#EDEDE6]"}">${escapeHtml(task.title)}</div>
+          ${metaParts.length ? `<div class="text-xs text-[#8C897E] dark:text-[#8B948C] mt-1">${metaParts.join(" &nbsp;·&nbsp; ")}</div>` : ""}
         </div>
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0 pt-0.5">
-          <span class="flex items-center gap-1.5 text-xs text-[#7A776E] dark:text-[#8B948C]">
-            <span class="h-1.5 w-1.5 rounded-full ${dotClass}"></span>${task.priority}
-          </span>
-          <button class="copy-btn h-9 w-9 sm:h-7 sm:w-7 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#1F2420] dark:hover:text-[#EDEDE6] hover:bg-[#F0EEE6] dark:hover:bg-white/5 transition-colors" title="Copy">
-            ${COPY_ICON}
+        <div class="flex items-center gap-2 shrink-0 pt-0.5">
+          ${!isDone ? `<span class="flex items-center gap-1.5 text-xs text-[#7A776E] dark:text-[#8B948C]"><span class="h-1.5 w-1.5 rounded-full ${dotClass}"></span>${task.priority}</span>` : ""}
+          <button class="delete-btn h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center rounded-full text-[#A6A296] dark:text-[#6B7269] hover:text-[#B3401F] dark:hover:text-[#E08A6B] hover:bg-[#F0EEE6] dark:hover:bg-white/5 transition-colors" title="Delete">
+            ${DELETE_ICON}
           </button>
         </div>
       `;
 
-      row.querySelector(".copy-btn").addEventListener("click", (e) => {
-        navigator.clipboard.writeText(taskAsText(task));
-        const btn = e.currentTarget;
-        btn.innerHTML = CHECK_ICON;
-        setTimeout(() => (btn.innerHTML = COPY_ICON), 1200);
+      row.querySelector(".check-btn").addEventListener("click", () => {
+        toggleStatus(task.id, isDone ? "pending" : "completed");
+      });
+      row.querySelector(".delete-btn").addEventListener("click", () => {
+        removeTask(task);
       });
 
-      tasksEl.prepend(row);
+      return row;
     }
 
-    function renderFallback() {
-      revealTasks();
-      const row = document.createElement("div");
-      row.className = "task-row py-3.5 border-t border-[#EAE7DE] dark:border-[#2B302C] first:border-t-0 text-sm text-[#B3791F] dark:text-[#D9A54A]";
-      row.textContent = "Couldn't find a clear task in that note — try rephrasing.";
-      tasksEl.prepend(row);
+    // ---------- data ----------
+
+    async function fetchTasks() {
+      const res = await fetch(`${API_BASE}/tasks`);
+      const tasks = await res.json();
+      renderTasks(tasks);
+      return tasks;
     }
 
-    async function extractTask() {
-      clearError();
-      const note = noteInput.value.trim();
-      if (!note) {
-        showError("Please type or speak something first.");
+    async function toggleStatus(id, status) {
+      await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      fetchTasks();
+    }
+
+    async function removeTask(task) {
+      const res = await fetch(`${API_BASE}/tasks/${task.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        showError("Couldn't delete that task.");
         return;
       }
+      const snapshot = await res.json();
+      await fetchTasks();
+      showToast(`Deleted: ${snapshot.title}`, {
+        label: "Undo",
+        onClick: () => restoreTask(snapshot),
+      });
+    }
 
+    async function restoreTask(snapshot) {
+      await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(snapshot),
+      });
+      fetchTasks();
+    }
+
+    // ---------- commands ----------
+
+    async function sendCommand(text) {
+      clearError();
+      hideClarify();
       setLoading(true);
       try {
-        const res = await fetch(API_URL, {
+        const res = await fetch(`${API_BASE}/command`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note }),
+          body: JSON.stringify({ text }),
         });
 
+        const data = await res.json();
+
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.detail || "Something went wrong extracting the task.");
+          showError(data.detail || "Something went wrong.");
+          return;
         }
 
-        const task = await res.json();
-        if (!task.task_found) {
-          renderFallback();
-        } else {
-          renderTask(task);
+        if (data.status === "ok") {
+          renderTasks(data.tasks);
+          const deleted = (data.actions || []).find((a) => a.type === "deleted");
+          if (deleted) {
+            showToast(data.message, { label: "Undo", onClick: () => restoreTask(deleted.task) });
+          } else {
+            showToast(data.message);
+          }
           noteInput.value = "";
           noteInput.style.height = "auto";
+        } else if (data.status === "clarification_needed") {
+          showClarify(data.question, data.options || []);
+        } else {
+          showError(data.message || "Something went wrong.");
         }
       } catch (err) {
-        showError(err.message || "Something went wrong. Is the server running?");
+        showError("Something went wrong. Is the server running?");
       } finally {
         setLoading(false);
         noteInput.focus();
       }
     }
 
-    extractBtn.addEventListener("click", extractTask);
+    function showClarify(question, options) {
+      clarifyQuestion.textContent = question;
+      clarifyOptions.innerHTML = "";
+      options.forEach((opt) => {
+        const chip = document.createElement("button");
+        chip.className = "text-xs px-3 py-1.5 rounded-full border border-[#E4E1D8] dark:border-[#333A34] text-[#1F2420] dark:text-[#EDEDE6] hover:border-[#3F6652] dark:hover:border-[#6B9C82] transition-colors";
+        chip.textContent = opt;
+        chip.addEventListener("click", () => sendCommand(opt));
+        clarifyOptions.appendChild(chip);
+      });
+      clarifyBox.classList.remove("hidden");
+    }
+
+    function submitFromComposer() {
+      const text = noteInput.value.trim();
+      if (!text) {
+        showError("Please type or speak something first.");
+        return;
+      }
+      sendCommand(text);
+    }
+
+    sendBtn.addEventListener("click", submitFromComposer);
+
+    completedToggle.addEventListener("click", () => {
+      const isHidden = completedListEl.classList.toggle("hidden");
+      completedChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(90deg)";
+    });
 
     // Auto-grow the textarea like a chat composer
     noteInput.addEventListener("input", () => {
@@ -249,7 +428,7 @@
     noteInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        extractTask();
+        submitFromComposer();
       }
     });
 
@@ -296,6 +475,9 @@
       micBtn.title = "Voice input not supported in this browser";
       micBtn.classList.add("opacity-30", "cursor-not-allowed");
     }
+
+    // ---------- init ----------
+    fetchTasks();
   </script>
 </body>
 </html>

@@ -1,10 +1,9 @@
-import json
-import os
-
-import anthropic
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+import assistant
+import db
 
 app = FastAPI(title="Noted")
 
@@ -15,77 +14,74 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = anthropic.Anthropic()
-
-MODEL = "claude-opus-5"
-
-SYSTEM_PROMPT = """You turn a casual spoken or typed note into a structured task.
-
-Extract:
-- action: a short verb phrase for what needs to be done (e.g. "Text", "Call", "Email", "Buy", "Finish"). Use the clearest single verb/short phrase implied by the note.
-- person: who it involves, if anyone is named or clearly implied. null if not applicable.
-- topic: what it's about, in a few words.
-- time: when, normalized from casual phrasing (e.g. "later today" -> "Later today", "tmrw morning" -> "Tomorrow morning"). Keep the user's specificity — don't invent a timestamp they didn't give. null if no time was mentioned.
-- priority: "Low", "Medium", or "High", inferred from urgency language ("ASAP", "urgent", "whenever"). Default "Medium" if unclear.
-
-If the note is gibberish, too vague, or does not describe an actionable task, set task_found to false and leave the other fields null (priority still defaults to "Medium").
-
-Respond only with the extraction — no commentary."""
-
-TASK_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "task_found": {"type": "boolean"},
-        "action": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "person": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "topic": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "time": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "priority": {"type": "string", "enum": ["Low", "Medium", "High"]},
-    },
-    "required": ["task_found", "action", "person", "topic", "time", "priority"],
-    "additionalProperties": False,
-}
+db.init_db()
 
 
-class ExtractRequest(BaseModel):
-    note: str
+class CommandRequest(BaseModel):
+    text: str
 
 
-class ExtractedTask(BaseModel):
-    task_found: bool
-    action: str | None
-    person: str | None
-    topic: str | None
-    time: str | None
-    priority: str
+class TaskCreateRequest(BaseModel):
+    title: str
+    description: str | None = None
+    due_date: str | None = None
+    due_time: str | None = None
+    priority: str | None = "Medium"
+    category: str | None = None
+    tags: list[str] | None = None
+    estimated_duration_minutes: int | None = None
 
 
-@app.post("/extract-task", response_model=ExtractedTask)
-def extract_task(req: ExtractRequest):
-    note = req.note.strip()
-    if not note:
-        raise HTTPException(status_code=400, detail="Please type or speak a note first.")
+class TaskPatch(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    due_date: str | None = None
+    due_time: str | None = None
+    priority: str | None = None
+    category: str | None = None
+    tags: list[str] | None = None
+    estimated_duration_minutes: int | None = None
+    status: str | None = None
 
-    try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=1024,
-            thinking={"type": "disabled"},
-            output_config={
-                "effort": "low",
-                "format": {"type": "json_schema", "schema": TASK_SCHEMA},
-            },
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": note}],
-        )
-    except anthropic.APIStatusError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API error: {e.message}")
-    except anthropic.APIConnectionError:
-        raise HTTPException(status_code=502, detail="Could not reach the Claude API.")
 
-    text = next(b.text for b in response.content if b.type == "text")
-    data = json.loads(text)
-    return ExtractedTask(**data)
+@app.post("/command")
+def command(req: CommandRequest):
+    text = req.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Please type or speak something first.")
+    return assistant.run_command(text)
+
+
+@app.get("/tasks")
+def list_tasks():
+    return db.list_tasks()
+
+
+@app.post("/tasks")
+def create_task(payload: TaskCreateRequest):
+    return db.create_task(**payload.model_dump(exclude_none=True))
+
+
+@app.patch("/tasks/{task_id}")
+def patch_task(task_id: int, patch: TaskPatch):
+    if db.get_task(task_id) is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    data = patch.model_dump(exclude_unset=True)
+    status = data.pop("status", None)
+    if data:
+        db.update_task(task_id, **data)
+    if status:
+        db.set_status(task_id, status)
+    return db.get_task(task_id)
+
+
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: int):
+    task = db.delete_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return task
 
 
 if __name__ == "__main__":
