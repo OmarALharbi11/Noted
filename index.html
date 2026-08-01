@@ -652,6 +652,7 @@
       let listening = false;
       let baseText = "";
       let finalTranscript = "";
+      let capturedSpeech = false;
 
       recognition.addEventListener("result", (event) => {
         let interim = "";
@@ -664,6 +665,7 @@
           }
         }
         const spoken = (finalTranscript + interim).trim();
+        if (spoken) capturedSpeech = true;
         noteInput.value = baseText ? `${baseText} ${spoken}`.trim() : spoken;
         noteInput.dispatchEvent(new Event("input"));
         clearError();
@@ -671,11 +673,14 @@
 
       // Recognition ends on its own once it detects you've stopped talking
       // (or when the mic button is tapped again) — either way, this fires.
+      // Some browsers never mark a result isFinal before ending, so trigger
+      // off whatever was actually captured rather than requiring isFinal.
       recognition.addEventListener("end", () => {
         listening = false;
         setMicListening(false);
-        if (finalTranscript.trim()) {
-          sendCommand(noteInput.value.trim());
+        const text = noteInput.value.trim();
+        if (capturedSpeech && text) {
+          sendCommand(text);
         }
       });
 
@@ -695,6 +700,7 @@
         clearError();
         baseText = noteInput.value.trim();
         finalTranscript = "";
+        capturedSpeech = false;
         listening = true;
         setMicListening(true);
         recognition.start();
