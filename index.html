@@ -539,7 +539,7 @@
 
     // ---------- commands ----------
 
-    async function sendCommand(text) {
+    async function sendCommand(text, { clearInput = true } = {}) {
       clearError();
       hideClarify();
       setLoading(true);
@@ -566,8 +566,10 @@
           } else {
             showToast(data.message);
           }
-          noteInput.value = "";
-          noteInput.style.height = "auto";
+          if (clearInput) {
+            noteInput.value = "";
+            noteInput.style.height = "auto";
+          }
         } else if (data.status === "clarification_needed") {
           showClarify(data.question, data.options || []);
         } else {
@@ -649,38 +651,36 @@
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      // Speech is captured entirely off-screen — it never touches the text
+      // bar. The text bar is for typing only; voice goes straight to the
+      // command pipeline the instant you stop talking.
       let listening = false;
-      let baseText = "";
       let finalTranscript = "";
-      let capturedSpeech = false;
+      let interimTranscript = "";
 
       recognition.addEventListener("result", (event) => {
-        let interim = "";
+        interimTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript + " ";
           } else {
-            interim += transcript;
+            interimTranscript += transcript;
           }
         }
-        const spoken = (finalTranscript + interim).trim();
-        if (spoken) capturedSpeech = true;
-        noteInput.value = baseText ? `${baseText} ${spoken}`.trim() : spoken;
-        noteInput.dispatchEvent(new Event("input"));
         clearError();
       });
 
       // Recognition ends on its own once it detects you've stopped talking
       // (or when the mic button is tapped again) — either way, this fires.
-      // Some browsers never mark a result isFinal before ending, so trigger
-      // off whatever was actually captured rather than requiring isFinal.
+      // Some browsers never mark a result isFinal before ending, so fall
+      // back to whatever interim text was captured rather than requiring it.
       recognition.addEventListener("end", () => {
         listening = false;
         setMicListening(false);
-        const text = noteInput.value.trim();
-        if (capturedSpeech && text) {
-          sendCommand(text);
+        const spoken = (finalTranscript + interimTranscript).trim();
+        if (spoken) {
+          sendCommand(spoken, { clearInput: false });
         }
       });
 
@@ -698,9 +698,8 @@
           return;
         }
         clearError();
-        baseText = noteInput.value.trim();
         finalTranscript = "";
-        capturedSpeech = false;
+        interimTranscript = "";
         listening = true;
         setMicListening(true);
         recognition.start();
