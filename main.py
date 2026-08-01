@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,6 +32,8 @@ class TaskCreateRequest(BaseModel):
     category: str | None = None
     tags: list[str] | None = None
     estimated_duration_minutes: int | None = None
+    recurrence: str | None = None
+    parent_id: int | None = None
 
 
 class TaskPatch(BaseModel):
@@ -41,6 +45,7 @@ class TaskPatch(BaseModel):
     category: str | None = None
     tags: list[str] | None = None
     estimated_duration_minutes: int | None = None
+    recurrence: str | None = None
     status: str | None = None
 
 
@@ -59,7 +64,10 @@ def list_tasks():
 
 @app.post("/tasks")
 def create_task(payload: TaskCreateRequest):
-    return db.create_task(**payload.model_dump(exclude_none=True))
+    task = db.create_task(**payload.model_dump(exclude_none=True))
+    for suggestion in assistant.generate_suggestions(task):
+        db.add_suggestion(task["id"], suggestion)
+    return task
 
 
 @app.patch("/tasks/{task_id}")
@@ -71,7 +79,9 @@ def patch_task(task_id: int, patch: TaskPatch):
     status = data.pop("status", None)
     if data:
         db.update_task(task_id, **data)
-    if status:
+    if status == "completed":
+        db.complete_task_with_recurrence(task_id)
+    elif status:
         db.set_status(task_id, status)
     return db.get_task(task_id)
 
@@ -82,6 +92,40 @@ def delete_task(task_id: int):
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
     return task
+
+
+@app.get("/insights")
+def insights():
+    return db.get_insights()
+
+
+@app.post("/briefing")
+def briefing():
+    pending = db.list_tasks(status="pending")
+    today_str = date.today().isoformat()
+    due_today = [t for t in pending if t.get("due_date") == today_str]
+    overdue = [t for t in pending if t.get("due_date") and t["due_date"] < today_str]
+    message = assistant.generate_briefing(due_today, overdue, db.get_insights())
+    return {"message": message}
+
+
+@app.delete("/suggestions/{suggestion_id}")
+def delete_suggestion(suggestion_id: int):
+    if not db.delete_suggestion(suggestion_id):
+        raise HTTPException(status_code=404, detail="Suggestion not found.")
+    return {"ok": True}
+
+
+@app.get("/memories")
+def list_memories():
+    return db.list_memories()
+
+
+@app.delete("/memories/{memory_id}")
+def delete_memory(memory_id: int):
+    if not db.delete_memory(memory_id):
+        raise HTTPException(status_code=404, detail="Memory not found.")
+    return {"ok": True}
 
 
 if __name__ == "__main__":
