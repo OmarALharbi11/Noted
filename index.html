@@ -137,11 +137,11 @@
           title="Speak your command"
           class="relative shrink-0 h-10 w-10 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#7A776E] dark:text-[#8B948C] hover:bg-[#F0EEE6] dark:hover:bg-white/5 hover:text-[#1F2420] dark:hover:text-[#EDEDE6] active:bg-[#F0EEE6] dark:active:bg-white/5 transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-[18px] h-[18px]">
+          <span id="mic-pulse" class="hidden absolute inset-0 rounded-full bg-[#3F6652] dark:bg-[#6B9C82] opacity-40 animate-ping"></span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="relative w-[18px] h-[18px]">
             <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/>
             <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.07A7 7 0 0 0 19 11Z"/>
           </svg>
-          <span id="mic-dot" class="hidden absolute top-1.5 right-1.5 sm:top-1 sm:right-1 h-2 w-2 rounded-full bg-[#D93025] ring-2 ring-white dark:ring-[#232824]"></span>
         </button>
 
         <button
@@ -169,7 +169,7 @@
   <script>
     const noteInput = document.getElementById("note-input");
     const micBtn = document.getElementById("mic-btn");
-    const micDot = document.getElementById("mic-dot");
+    const micPulse = document.getElementById("mic-pulse");
     const sendBtn = document.getElementById("send-btn");
     const sendIcon = document.getElementById("send-icon");
     const loadingDots = document.getElementById("loading-dots");
@@ -199,7 +199,7 @@
     const memoryEmpty = document.getElementById("memory-empty");
     const memoryClose = document.getElementById("memory-close");
 
-    const API_BASE = "http://127.0.0.1:8010";
+    const API_BASE = "https://noted-hiqu.onrender.com";
 
     const PRIORITY_DOT = {
       Low: "bg-[#A6A296] dark:bg-[#6B7269]",
@@ -623,32 +623,68 @@
       }
     });
 
-    // Voice input via the Web Speech API
+    // Voice input via the Web Speech API — tap to start, just talk, and it
+    // fires the command itself the moment you stop (no separate send step).
+    const MIC_ACTIVE_CLASSES = ["bg-[#3F6652]", "dark:bg-[#6B9C82]", "text-white", "dark:text-[#1B1F1C]"];
+    const MIC_IDLE_CLASSES = ["text-[#7A776E]", "dark:text-[#8B948C]"];
+
+    function setMicListening(isListening) {
+      micPulse.classList.toggle("hidden", !isListening);
+      sendBtn.disabled = isListening;
+      if (isListening) {
+        micBtn.classList.remove(...MIC_IDLE_CLASSES);
+        micBtn.classList.add(...MIC_ACTIVE_CLASSES);
+        noteInput.placeholder = "Listening…";
+      } else {
+        micBtn.classList.remove(...MIC_ACTIVE_CLASSES);
+        micBtn.classList.add(...MIC_IDLE_CLASSES);
+        noteInput.placeholder = "Message Noted…";
+      }
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.lang = "en-US";
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       let listening = false;
+      let baseText = "";
+      let finalTranscript = "";
 
       recognition.addEventListener("result", (event) => {
-        const transcript = event.results[0][0].transcript;
-        noteInput.value = noteInput.value ? `${noteInput.value} ${transcript}` : transcript;
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + " ";
+          } else {
+            interim += transcript;
+          }
+        }
+        const spoken = (finalTranscript + interim).trim();
+        noteInput.value = baseText ? `${baseText} ${spoken}`.trim() : spoken;
         noteInput.dispatchEvent(new Event("input"));
         clearError();
       });
 
+      // Recognition ends on its own once it detects you've stopped talking
+      // (or when the mic button is tapped again) — either way, this fires.
       recognition.addEventListener("end", () => {
         listening = false;
-        micDot.classList.add("hidden");
+        setMicListening(false);
+        if (finalTranscript.trim()) {
+          sendCommand(noteInput.value.trim());
+        }
       });
 
-      recognition.addEventListener("error", () => {
+      recognition.addEventListener("error", (event) => {
         listening = false;
-        micDot.classList.add("hidden");
-        showError("Couldn't hear you — check microphone permissions and try again.");
+        setMicListening(false);
+        if (event.error !== "no-speech" && event.error !== "aborted") {
+          showError("Couldn't hear you — check microphone permissions and try again.");
+        }
       });
 
       micBtn.addEventListener("click", () => {
@@ -657,8 +693,10 @@
           return;
         }
         clearError();
+        baseText = noteInput.value.trim();
+        finalTranscript = "";
         listening = true;
-        micDot.classList.remove("hidden");
+        setMicListening(true);
         recognition.start();
       });
     } else {
